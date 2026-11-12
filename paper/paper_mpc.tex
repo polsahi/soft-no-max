@@ -274,9 +274,9 @@ only for the last two). \emph{CrypTen with our public rescale} has identical rou
 \emph{SHAFT with the clip narrowed to $[-6,0]$ and 8 ODE steps} (what a bounded model would allow; its accuracy was not
 validated) saves 192 rounds and about 1.2--4.8\,GB, and ours remains $10\%$ ($N{=}128$) and $19\%$ ($N{=}256$) faster in wall
 time and uses about $48\%$ fewer bytes at 256 tokens. \emph{A constant shift on a vanilla model without QK-norm} is as fast as ours
-and $1$--$2\%$ faster (it lacks the 300 QK-norm rounds), but it carries no bound. So the speed comes from dropping the
+and $0.7$--$2.3\%$ faster (it lacks the 300 QK-norm rounds), but it carries no bound. So the speed comes from dropping the
 secure maximum, which prior systems already do; what the architecture adds is the guarantee on the shift, at the price of
-$1$--$2\%$ of the time and of the accuracy losses of Section~\ref{sec:accuracy}.
+$0.7$--$2.3\%$ of the time and of the accuracy losses of Section~\ref{sec:accuracy}.
 
 \begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{Fairness controls, BERT-base encoder, single node, random weights, one run, 16-bit. Wall = measured seconds on one node
