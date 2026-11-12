@@ -34,8 +34,8 @@ tokens) and $24\%$ (256 tokens) against SHAFT (mean of three runs, random weight
 the advantage vanishes at 32 tokens. A constant shift on a vanilla model, with no bound, is as fast: the speed comes from dropping the maximum, and the bound supplies the guarantee.
 The guarantee has a price these costs do not include. The bound that is safe for CrypTen's 16-bit reciprocal ($g\le3$) costs
 converted BERT-base $2.9$ to $14.8$ GLUE points in plaintext under one untuned recipe; most of that loss is the cap itself (SST-2 recovers to $92.3\%$ at $g\le8$ against $92.9\%$ for vanilla and $90.0\%$ at $g\le3$), while distillation and longer training recover at most $0.65$ points; a ViT trained from scratch at $g\le3$ loses $0.3\pm0.8$ points (within noise). In two-party inference of trained models on 200 SST-2 sentences and 200 QNLI pairs, the shifted softmax has a lower median logit error than the
-baselines and is 5--7\% faster at about 51 tokens (QNLI), but each protocol occasionally produces silent garbage logits (for the
-shifted softmax, about 1 sentence in 400 on each of SST-2 and QNLI). Released QK-normalized LLMs give vacuous bounds, so the bound must be designed in. On a 30-layer LLM, calibrated
+baselines and is 5--7\% faster at about 51 tokens (QNLI) and 9.5--11\% faster at about 106 tokens (48 long QNLI pairs, faster on every pair, at a 12-point accuracy cost), but each protocol occasionally produces silent garbage logits (for the
+shifted softmax, about 1 sentence in 400 on each of SST-2 and QNLI). Raising the fixed-point precision to 20 or 24 bits does not help: it makes the garbage events far more frequent. Released QK-normalized LLMs give vacuous bounds, so the bound must be designed in. On a 30-layer LLM, calibrated
 constants collapsed silently under CrypTen's reciprocal.
 \end{abstract}
 
@@ -85,7 +85,7 @@ safe in fixed point costs real accuracy after conversion (Section~\ref{sec:accur
 We do not claim a free speed-up: the speed and the guarantee are bought with accuracy on
 converted checkpoints, and the speed and accuracy results come from different experiments (random-weight cost
 runs, plaintext fine-tuning). We tested distillation and longer fine-tuning (Section~\ref{sec:accuracy}), which recover little; we have not evaluated
-QK-norm pretraining of a language model or a wider-window reciprocal, the levers most likely to reduce that cost.
+QK-norm pretraining of a language model, the lever most likely to reduce that cost; the other candidate, a wider-window reciprocal in CrypTen, did not work in our tests (Section~\ref{sec:accuracy}).
 
 \section{Background and related work}
 \paragraph{Secure softmax.}
@@ -453,8 +453,7 @@ fire. CrypTen's secure max failed the same way once (26 tokens), and there it fl
 garbage logits (maximum error 0.68) but disagreed with plaintext once. Rerunning each of the two failing sentences alone, three times with fresh randomness, gave no failure (6 of 6 runs with maximum error
 0.02--0.05), so the failures are not determined by the input; they depend on the shares or the run state. A full second pass of the $g\le3$ model over the same 200 sentences with fresh randomness had no sentence with error above 1, including
 the one that failed before, and its logits differ from the first pass by a median of $0.002$ (maximum $0.019$). The failure is therefore a rare event driven by the
-randomness of the shares, about 1 in 400 sentence runs for this model on SST-2. We did not identify the cause
-(probabilistic truncation in CrypTen is a candidate we did not test), and with such a low rate we cannot rank the softmaxes. At this sequence length the converted model is not meaningfully faster
+randomness of the shares, about 1 in 400 sentence runs for this model on SST-2. We tested one candidate cause, CrypTen's probabilistic truncation, whose failure probability grows with the magnitude of the fixed-point values: on 40 sentences, raising the precision from 16 to 20 bits made 16 of 40 sentences garbage for the shifted softmax and 18 of 40 for the secure max (against about 1 in 400 at 16 bits), and at 24 bits every sentence was wrong for both. The direction fits the hypothesis, the effect is the same for both protocols, and it rules out ``more bits'' as a remedy in CrypTen; we did not isolate truncation from other overflows. With such a low rate at 16 bits we cannot rank the softmaxes. At this sequence length the converted model is not meaningfully faster
 ($15.5$\,s against $16.5$\,s for the secure max and $15.7$\,s for the ODE per sentence) and uses more rounds than the ODE,
 consistent with the absence of a gain at 32 tokens in Table~\ref{tab:bert}.
 
@@ -499,6 +498,18 @@ Vanilla, SHAFT ODE & 91.0 & 91.0 & 196/200 & 0.448 & 19 & 1 & 1490 / 4.14 & 25.5
 \end{tabular}
 \end{table}
 
+\paragraph{Long inputs.} The speed and accuracy results above are at about 51 tokens, where the gain is 5--7\%. To put speed and accuracy at one operating point at a length where the gain is larger, we evaluated the 48 QNLI dev pairs with at least 90 tokens (mean 106) with the same three models (Table~\ref{tab:long}; one run per pair). The shifted softmax is 9.5\% faster than the secure max and 11.1\% faster than the ODE, and faster on all 48 pairs. The cost of the cap is also larger on these inputs: 79.2\% plaintext accuracy against 91.7\% for vanilla (secure 81.2\%, a 2-pair difference). Garbage logits again occur for every protocol (1, 4 and 5 pairs); the counts are too small to rank them.
+
+\begin{table}[t]\centering\small
+\caption{Long QNLI pairs ($\ge90$ tokens, $n=48$, mean 106 tokens), 2-party CrypTen on two MN5 nodes. Columns as in Table~\ref{tab:qnli}.}\label{tab:long}
+\begin{tabular}{@{}lrrrrrrr@{}}\toprule
+Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Rounds / GB & s\\\midrule
+QK-norm $g\le3$, shifted (ours) & 79.2 & 81.2 & 45/48 & 0.174 & 1 & 1790 / 5.79 & 42.4\\
+Vanilla, CrypTen max & 91.7 & 91.7 & 46/48 & 0.463 & 4 & 2390 / 7.79 & 46.9\\
+Vanilla, SHAFT ODE & 91.7 & 91.7 & 46/48 & 0.499 & 5 & 1490 / 8.56 & 47.8\\\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Discussion and limitations}
 \paragraph{Where this leaves the trade-off.} The speed result (Section~\ref{sec:cost}) and the
 accuracy result (Section~\ref{sec:accuracy}) are measured on the same protocol but not on the same
@@ -506,8 +517,7 @@ operating point as a deployment would choose: the cost does not depend on $g$, w
 The honest summary is that, for a model that is \emph{already} bounded (or can be retrained so), a
 shift-exact, comparison-free softmax is a clear communication saving; for a converted model it is a speed/accuracy trade of
 several points on harder tasks.
-Three levers could change the trade-off and were not tested: a reciprocal with a wider working window (the binding
-constraint is the reciprocal, not the model), QK-norm pretraining (distillation and longer fine-tuning were tested and recover at most 0.65 points on SST-2), and a
+A wider reciprocal window, the lever we expected to relax the cap, was tested in CrypTen and failed: 20 Newton iterations at 16 bits and 10 iterations at 24 bits both left the shifted softmax producing garbage rows at $g=5.5$ and $8$ (the secure max did not at 128 tokens or fewer), so the cap is set by CrypTen's reciprocal and truncation together, not by the window alone. Two levers could change the trade-off and were not tested: QK-norm pretraining (distillation and longer fine-tuning were tested and recover at most 0.65 points on SST-2), and a
 softmax with a constant in the denominator (``softmax-one'') or a public floor on the row sum. The last changes the function (it is no longer
 the exact softmax) unless it is a floor applied only for numerical safety, and a floor of $e^{-6}$ did not rescue
 calibrated constants on the LLM.
@@ -517,7 +527,7 @@ calibrated constants on the LLM.
 \item Fixed-point conditions come from measuring one reciprocal implementation (CrypTen's), not from a proof.
 \item LAN/WAN numbers use SHAFT's time model; wall-clock is on a fast link.
 \item The large cost tables use random weights. Secure accuracy of the converted BERT was measured on two tasks (SST-2, QNLI),
-200 sentences each (about 26 and 51 tokens), one seed, and not on the other GLUE tasks.
+200 sentences each (about 26 and 51 tokens) plus 48 long QNLI pairs (about 106 tokens), one seed for most runs, and not on the other GLUE tasks.
 \item Decoder results are prefill cost only and no QK-norm decoder was trained. Decode-phase cost with a KV cache, where a
 secure maximum over one row costs about $\log_2 t$ rounds, is not measured, and the advantage there is likely smaller.
 \item The calibrated-constant failure is for an unbounded LLM at 16 bits in CrypTen, from few windows.
@@ -526,8 +536,7 @@ composes existing protocols and is not a new security proof.
 \item Weights are public in the LLM experiments; weight privacy changes cost, not these numerics.
 \item The $g\le3$ ViT checkpoints were evaluated in plaintext only; the 2-party ViT run uses the earlier unbounded-gain model.
 \item Only the QK-norm case is implemented and costed; soft-capping needs a secure $\tanh$ that we did not implement.
-\item The 16-bit ring is CrypTen's choice; most current 2PC systems use larger rings, and the 11-nat window, hence $g\le3$, may
-be an artefact of that precision.
+\item The 16-bit ring is CrypTen's choice; most current 2PC systems use larger rings. We tried to widen the reciprocal window in CrypTen with 20 Newton iterations at 16 bits and with 24-bit precision (10 iterations): neither made $g=5.5$ or $8$ safe for the shifted softmax (garbage rows at $g=5.5$ and $8$, with errors up to $2\times10^{2}$), and 24 bits broke even $g=3$. Whether $g>3$ is safe in a different framework with a larger ring is untested, so we cannot say the cap is an artefact of CrypTen's precision.
 \item Wall times are three-run means on one pair of nodes (the repeats share hardware, so node-to-node variation is not captured), and LAN/WAN are modelled from one run; the first ViT result (81.7\% vs 81.2\%) is one run, and the $g\le3$ ViT control uses 3 seeds on a small model and one dataset.
 \end{enumerate}
 
@@ -538,9 +547,9 @@ wall time against SHAFT at 128--256 tokens (three-run means, random weights), an
 constants are not a substitute (they fail silently on an LLM), released models give no usable bound, and
 the bound that is safe in fixed point costs real accuracy after conversion. A converted $g\le3$ BERT does run end to end in
 two-party inference, with secure accuracy equal to plaintext on 200 SST-2 sentences and 200 QNLI pairs, a five- to six-fold lower median logit
-error than the baselines and a 5--7\% speed-up at about 51 tokens, but with an occasional silently corrupted output (about one sentence in 400
+error than the baselines and a 5--7\% speed-up at about 51 tokens (9.5--11\% at about 106 tokens, with a 12-point accuracy cost), but with an occasional silently corrupted output (about one sentence in 400
 on each of SST-2 and QNLI, not reproduced when rerun alone) and no speed-up at 26 tokens. A $g\le3$ ViT trained from scratch matches vanilla within seed noise,
-while accuracy of the converted BERT returns towards vanilla as the cap is relaxed to $g\le8$. The cap, not the training recipe, drives the loss, and the safe cap $g\le3$ is an artefact of CrypTen's 16-bit reciprocal. The open question is whether a language model
+while accuracy of the converted BERT returns towards vanilla as the cap is relaxed to $g\le8$. The cap, not the training recipe, drives the loss, and the safe cap $g\le3$ comes from CrypTen's 16-bit reciprocal; widening the window with more Newton iterations or more bits did not make a larger cap safe there. The open question is whether a language model
 pre-trained with the bound can have the speed, the guarantee and the accuracy together.
 
 \paragraph{Availability.} The benchmark and training scripts, job scripts and per-sentence result files are available at
