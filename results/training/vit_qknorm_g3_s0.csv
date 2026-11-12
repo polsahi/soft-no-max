@@ -1,0 +1,3 @@
+model,test_acc,logit_min,logit_max,g,m_star,bound_holds,snm_err,finite,profiling_needed
+vanilla,0.8124,-8.193265914916992,9.084887504577637,,,,,,True
+qknorm,0.815,-2.7526350021362305,2.7762207984924316,2.8423125743865967,2.8523125743865965,True,8.940696716308594e-08,True,False

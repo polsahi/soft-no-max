@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --job-name=snm_bertgmax
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
+#SBATCH --time=02:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=20
+#SBATCH --gres=gpu:1
+#SBATCH --qos=acc_bsccs
+#SBATCH --account=bsc28
+
+# Can a looser bound close the ~1-point SST-2 gap of scalar QK-norm BERT? g <= 5.5 fits 16-bit fixed
+# point (width 2g <= 11.1 nats); g <= 6.9 fits 20-bit (2g <= 13.9 nats), where the secure-softmax
+# microbenchmark is equally accurate and communication is unchanged (same 64-bit ring).
+# Three seeds of QK-norm with g_max = 6.9; compare with results/bert_qknorm_sst2_seeds.csv.
+
+set -euo pipefail
+cd "$SLURM_SUBMIT_DIR"
+mkdir -p logs results
+
+module purge
+module load impi intel hdf5 mkl python/3.12.1-gcc
+export PYTHONPATH="$HOME/.local/lib/python3.12/site-packages:${PYTHONPATH:-}"
+export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -iv cuda | paste -sd:)
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1
+export HF_HUB_CACHE=${HF_CACHE_DIR:-$HOME/huggingface}
+
+OUT=results/bert_qknorm_sst2_gmax69.csv
+for SEED in 0 1 2; do
+  python3 bert_qknorm_glue.py --model bert-base-uncased --task sst2 --data glue/sst2 \
+      --variant qknorm --g_max 6.9 --g_lr 1e-3 --epochs 3 --seed $SEED --out $OUT
+done
+cat $OUT
+echo "[job] DONE"
