@@ -33,7 +33,7 @@ CrypTen's secure-max softmax and $13\times$ less than SHAFT's. On BERT-base, mea
 tokens) and $24\%$ (256 tokens) against SHAFT (mean of three runs, random weights); modelled LAN/WAN gains reach $35\%/46\%$, and
 the advantage vanishes at 32 tokens. A constant shift on a vanilla model, with no bound, is as fast: the speed comes from dropping the maximum, and the bound supplies the guarantee.
 The guarantee has a price these costs do not include. The bound that is safe for CrypTen's 16-bit reciprocal ($g\le3$) costs
-converted BERT-base $2.9$ to $14.8$ GLUE points in plaintext under one untuned recipe; distillation and longer training recover at most $0.65$ points on SST-2, while a ViT trained from scratch with the bound loses $0.3\pm0.8$ points (within noise, which with three seeds does not exclude a loss of one to two points). In two-party inference of trained models on 200 SST-2 sentences and 200 QNLI pairs, the shifted softmax has a lower median logit error than the
+converted BERT-base $2.9$ to $14.8$ GLUE points in plaintext under one untuned recipe; most of that loss is the cap itself (SST-2 recovers to $92.3\%$ at $g\le8$ against $92.9\%$ for vanilla and $90.0\%$ at $g\le3$), while distillation and longer training recover at most $0.65$ points; a ViT trained from scratch at $g\le3$ loses $0.3\pm0.8$ points (within noise). In two-party inference of trained models on 200 SST-2 sentences and 200 QNLI pairs, the shifted softmax has a lower median logit error than the
 baselines and is 5--7\% faster at about 51 tokens (QNLI), but each protocol occasionally produces silent garbage logits (for the
 shifted softmax, about 1 sentence in 400 on each of SST-2 and QNLI). Released QK-normalized LLMs give vacuous bounds, so the bound must be designed in. On a 30-layer LLM, calibrated
 constants collapsed silently under CrypTen's reciprocal.
@@ -371,11 +371,11 @@ At 65 tokens the extra QK-norm rounds cancel the byte savings (WAN $+3\%$ vs van
 
 \paragraph{Converted BERT-base.} We convert BERT-base to scalar-gain QK-norm and fine-tune it for
 3 epochs (lr $2\!\times\!10^{-5}$, gains at $10^{-3}$, one recipe for all tasks, not tuned). Table~\ref{tab:glue} shows
-the result: the bound that Eq.~\eqref{eq:cond} requires ($g\le3$) costs $2.9$--$14.8$ points under this single untuned recipe, which may overstate the cost of the bound itself (the gains sit at the cap; controls with a longer, distilled and higher-lr recipe, and a from-scratch ViT control, follow below); even $g\le5.5$, which is not
+the result: the bound that Eq.~\eqref{eq:cond} requires ($g\le3$) costs $2.9$--$14.8$ points under this single untuned recipe, which is mostly the cost of the cap itself (the gains sit at the cap; sweeps of the cap, of the recipe and a from-scratch ViT control follow below); even $g\le5.5$, which is not
 provable for single-key rows, costs $1.0$--$4.8$.
 SST-2 is the mildest task. The gains sit at the cap on every task, so the bound binds. The mechanism is that $g$ caps
 attention sharpness: the largest weight a single key can receive among $N$ is $e^{2g}/(e^{2g}+N-1)$, i.e.\ 0.76 at
-$g=3$, $N=128$ (0.998 at $g=5.5$), which may hurt tasks needing token-level attention (CoLA, RTE, MRPC); the controls below suggest that this explains only part of the loss.
+$g=3$, $N=128$ (0.998 at $g=5.5$), which hurts tasks needing token-level attention (CoLA, RTE, MRPC); the cap sweep below supports this.
 
 \begin{table}[t]\centering\small
 \caption{GLUE dev, BERT-base converted from the vanilla checkpoint (mean $\pm$ sd over seeds: 5 for RTE, MRPC and CoLA; 3 for QNLI, MNLI and SST-2).
@@ -396,18 +396,35 @@ CoLA (MCC) & 57.28$\pm$1.43 & 54.42$\pm$1.02 & 42.53$\pm$3.22\\\bottomrule
 \caption{Accuracy drop of QK-norm-converted BERT-base against vanilla.}\label{fig:glue}
 \end{figure}
 
-\paragraph{How much of the cost is the bound, and how much the recipe?} We ran two controls, both with the cap $g\le3$ enforced
-(learned gains $2.85$--$2.98$, logit width under $6$ nats). \emph{BERT-base on SST-2, recipe variants} (Table~\ref{tab:var}, 3 seeds each):
-distilling from the vanilla fine-tuned model, a higher learning rate, or 10 epochs alone leave accuracy within noise of the baseline
-recipe ($89.83$--$90.06$ against $89.95$); distillation with 10 epochs gives $90.60\pm0.41$, which narrows the gap to vanilla
-($92.89$) from $2.9$ to $2.3$ points. That $0.65$-point gain is about one standard deviation with three seeds, so it is suggestive only,
-and the controls were scored on the dev set that Table~\ref{tab:glue} also uses, so they are a sensitivity analysis, not a tuned result.
+\paragraph{How much of the cost is the cap, and how much the recipe?} We ran three controls. \emph{Accuracy against the cap}
+(Table~\ref{tab:gsweep}; same recipe, 3 seeds on SST-2, 1 seed on QNLI for the new points): accuracy rises steadily as the cap is relaxed. On
+SST-2 it goes from $89.95$ at $g\le3$ to $91.09$ at $g\le4$, $91.93$ at $5.5$ and $92.28$ at $8$, against $92.89$ for vanilla; it is flat beyond
+$8$ ($92.24$ at $12$). On QNLI, $g\le8$ reaches $91.45$ (one seed) against $91.48$ for vanilla. So most of the conversion loss is the cap
+itself, and a cap near 8 costs under a point here; but only $g\le3$ is safe for CrypTen's 16-bit reciprocal (Eq.~\eqref{eq:cond}).
+\emph{Recipe variants} (Table~\ref{tab:var}, SST-2, $g\le3$, 3 seeds each): distilling from the vanilla fine-tuned model, a higher learning
+rate, or 10 epochs alone leave accuracy within noise of the baseline recipe ($89.83$--$90.06$ against $89.95$); distillation with 10 epochs gives
+$90.60\pm0.41$, so recipe changes recover at most $0.65$ points (about one standard deviation with three seeds). The recipe controls and the
+sweep were scored on the dev set that Table~\ref{tab:glue} also uses, so they are sensitivity analyses, not tuned results.
 \emph{ViT trained from scratch with $g\le3$} (CIFAR-10, 100 epochs, 3 seeds): vanilla $81.32\pm0.19$ against QK-norm
 $81.01\pm0.74$ (QK-norm seeds $81.50$, $80.15$, $81.39$; vanilla $81.24$, $81.18$, $81.53$). The learned gain is $2.84$, the logits lie in
-$[-2.79,2.79]$, and the shift error is about $10^{-7}$. The $0.3$-point gap is within seed noise. Taken together, the cap alone does not
-account for the large conversion losses: a model trained with the bound from the start loses nothing measurable here, and much of the
-BERT loss comes from converting a pre-trained model in a few epochs. This is thin evidence (a small ViT, one dataset, and no
-pre-training with the bound), and it does not show that a bounded BERT pre-trained from scratch would match vanilla.
+$[-2.79,2.79]$, and the shift error is about $10^{-7}$. The $0.3$-point gap is within seed noise, which with three seeds does not exclude a loss of
+one to two points. Taken together: for a pre-trained BERT converted to scalar-gain QK-norm, the cap is the main driver of the loss and the training
+recipe is not; a model trained with a $g\le3$ cap from the start (a small ViT) loses little, so the cap hurts most when a pre-trained model's
+sharp attention is forced under it. This is thin evidence (one small ViT, two language tasks, no language model pre-trained with the bound).
+
+\begin{table}[t]\centering\small
+\caption{BERT-base accuracy (dev, \%) against the gain cap, same recipe (3 epochs, lr $2\!\times\!10^{-5}$). Mean $\pm$ sd over 3 seeds
+unless marked; $^\dagger$ one seed; -- not run. Only $g\le3$ is fixed-point safe for CrypTen's 16-bit reciprocal.}\label{tab:gsweep}
+\begin{tabular}{@{}lcc@{}}\toprule
+Cap $g_{\max}$ & SST-2 & QNLI\\\midrule
+3 (safe) & 89.95$\pm$0.63 & 86.36$\pm$0.90\\
+4 & 91.09$\pm$0.13 & --\\
+5.5 & 91.93$\pm$0.29 & 89.33$\pm$1.48\\
+8 & 92.28$\pm$0.18 & 91.45$^\dagger$\\
+12 & 92.24$\pm$0.46 & --\\
+Vanilla & 92.89$\pm$0.30 & 91.48$\pm$0.20\\\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[t]\centering\small
 \caption{BERT-base SST-2 with $g\le3$: recipe variants (dev accuracy \%, 3 seeds). KD = distillation from the vanilla fine-tuned
@@ -523,7 +540,7 @@ the bound that is safe in fixed point costs real accuracy after conversion. A co
 two-party inference, with secure accuracy equal to plaintext on 200 SST-2 sentences and 200 QNLI pairs, a five- to six-fold lower median logit
 error than the baselines and a 5--7\% speed-up at about 51 tokens, but with an occasional silently corrupted output (about one sentence in 400
 on each of SST-2 and QNLI, not reproduced when rerun alone) and no speed-up at 26 tokens. A $g\le3$ ViT trained from scratch matches vanilla within seed noise,
-which weakly suggests that some of the conversion loss comes from the recipe rather than from the bound; the evidence (one small vision model, three seeds) cannot establish this for language tasks that need sharp attention. The open question is whether a language model
+while accuracy of the converted BERT returns towards vanilla as the cap is relaxed to $g\le8$. The cap, not the training recipe, drives the loss, and the safe cap $g\le3$ is an artefact of CrypTen's 16-bit reciprocal. The open question is whether a language model
 pre-trained with the bound can have the speed, the guarantee and the accuracy together.
 
 \paragraph{Availability.} The benchmark and training scripts, job scripts and per-sentence result files are available at
