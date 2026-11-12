@@ -31,7 +31,7 @@ numerical range, not about privacy; the secure exponential and reciprocal remain
 In two-party CrypTen the softmax takes a constant 37--38 rounds and, for a single softmax, communicates about $10\times$ less than
 CrypTen's secure-max softmax and $13\times$ less than SHAFT's. On BERT-base, measured two-machine wall time falls by $13\%$ (128
 tokens) and $24\%$ (256 tokens) against SHAFT (mean of three runs, random weights); modelled LAN/WAN gains reach $35\%/46\%$, and
-the advantage vanishes at 32 tokens.
+the advantage vanishes at 32 tokens. A constant shift on a vanilla model, with no bound, is as fast: the speed comes from dropping the maximum, and the bound supplies the guarantee.
 The guarantee has a price these costs do not include. The bound that is safe for CrypTen's 16-bit reciprocal ($g\le3$) costs
 converted BERT-base $2.9$ to $14.8$ GLUE points in plaintext under one untuned recipe; distillation and longer training recover at most $0.65$ points on SST-2, while a ViT trained from scratch with the bound loses $0.3\pm0.8$ points (within noise, which with three seeds does not exclude a loss of one to two points). In two-party inference of trained models on 200 SST-2 sentences and 200 QNLI pairs, the shifted softmax has a lower median logit error than the
 baselines and is 5--7\% faster at about 51 tokens (QNLI), but each protocol occasionally produces silent garbage logits (for the
@@ -97,7 +97,7 @@ clipping each input to $[-4,12]$ (two ReLUs per element) and integrating an ODE 
 for a constant 41 rounds, and states that convergence requires $\max(x)-\min(x)\le t$.
 NEXUS \cite{nexus_2025} and THOR \cite{thor_2025} are homomorphic-encryption systems that use a
 constant or an assumed input range; NEXUS does not say how its constant is chosen, and the SoK \cite{sok_2026}
-classifies constants of this kind, in these and other HE systems, as empirically determined. Many systems instead replace softmax with ReLU or quadratic forms and
+classifies constants of this kind, in these and other HE systems, as empirically determined. Hybrid HE/MPC systems such as Iron \cite{iron_2022} and BOLT \cite{bolt_2024} use their own protocols and number formats for the softmax; our fixed-point conditions are measured for CrypTen's 16-bit reciprocal and were not evaluated there. Many systems instead replace softmax with ReLU or quadratic forms and
 distill \cite{mpcformer_2023,nimbus_2024}; those are approximate and need retraining,
 which differs from our setting, a shift-exact softmax on a bounded architecture.
 
@@ -257,10 +257,9 @@ communication by $1.35$--$1.65\times$ on this link (with the byte term scaled by
 $16.3\%/19.0\%$, same ranking). A real WAN was not run.
 \item Raising the Newton iterations to 20 for a wider reciprocal window adds 240 rounds and moves the 128-token gain to
 $-18.1\%$ (LAN) and $-21.2\%$ (WAN).
-\item A fair baseline would also receive the public rescale, which removes CrypTen's own overflow at $N\ge256$. We did not run
-CrypTen or SHAFT with it, so the $N{=}256$ comparison against CrypTen is not like-for-like, and SHAFT's clip range was not
-tuned to bounded logits. We also did not run a constant shift \emph{without} QK-norm: its softmax cost would equal ours minus
-QK-norm's 300 rounds, but it carries no bound, so we could not run it safely and report only the expectation.
+\item The headline comparison gives the baselines no public rescale and a clip range not tuned to bounded logits.
+Table~\ref{tab:fair} (below) adds fairness controls: CrypTen with the same rescale, SHAFT with a narrowed clip, and a constant shift on a vanilla model
+without QK-norm.
 \item Table~\ref{tab:bert} is measured with random weights. Rounds and bytes do not depend on the values, but the fixed-point
 behaviour does, and trained weights needed the public scales of Section~\ref{sec:method}. Section~\ref{sec:accuracy} reports a
 trained model at about 26 tokens, where there is no speed-up.
@@ -269,6 +268,30 @@ our one-hot embedding and a CrypTen-level reimplementation of the encoder (SHAFT
 \item These costs do not depend on $g$. The accuracy of models that satisfy Eq.~\eqref{eq:cond} is in
 Section~\ref{sec:accuracy}.
 \end{enumerate}
+
+\paragraph{Fairness controls.} Table~\ref{tab:fair} reruns BERT-base on a single node with three controls (random weights; cost
+only for the last two). \emph{CrypTen with our public rescale} has identical rounds and bytes (a public multiplication costs nothing).
+\emph{SHAFT with the clip narrowed to $[-6,0]$ and 8 ODE steps} (what a bounded model would allow; its accuracy was not
+validated) saves 192 rounds and about 1.2--4.8\,GB, and ours remains $10\%$ ($N{=}128$) and $19\%$ ($N{=}256$) faster in wall
+time and uses about $48\%$ fewer bytes at 256 tokens. \emph{A constant shift on a vanilla model without QK-norm} is as fast as ours
+and $1$--$2\%$ faster (it lacks the 300 QK-norm rounds), but it carries no bound. So the speed comes from dropping the
+secure maximum, which prior systems already do; what the architecture adds is the guarantee on the shift, at the price of
+$1$--$2\%$ of the time and of the accuracy losses of Section~\ref{sec:accuracy}.
+
+\begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{Fairness controls, BERT-base encoder, single node, random weights, one run, 16-bit. Wall = measured seconds on one node
+(loopback), so values differ slightly from Table~\ref{tab:bert}. The two starred rows are cost only.}\label{tab:fair}
+\begin{tabular}{@{}lrrrrrr@{}}\toprule
+ & \multicolumn{3}{c}{$N=128$} & \multicolumn{3}{c}{$N=256$}\\\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Softmax & Rounds & GB & Wall (s) & Rounds & GB & Wall (s)\\\midrule
+CrypTen max & 2340 & 9.70 & 56.4 & 2460 & 24.16 & 118.7\\
+CrypTen max + our rescale & 2340 & 9.70 & 55.9 & 2460 & 24.16 & 118.8\\
+SHAFT (clip $[-4,12]$, 16 steps) & 1440 & 10.80 & 56.6 & 1440 & 29.52 & 125.4\\
+SHAFT narrowed ($[-6,0]$, 8 steps)* & 1248 & 9.59 & 54.1 & 1248 & 24.69 & 116.5\\
+Constant shift, no QK-norm* & 1392 & 6.54 & 47.5 & 1392 & 12.48 & 93.9\\
+Ours (QK-norm + shifted) & 1704 & 6.68 & 48.6 & 1704 & 12.83 & 94.6\\\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Worst-case rows}
 We ran 16 rows each of six kinds (all logits at $-2g$, all at 0, one at 0, one visible key at

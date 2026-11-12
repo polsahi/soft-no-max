@@ -34,6 +34,7 @@ _ap = argparse.ArgumentParser()
 _ap.add_argument("--gs", default="3.0,5.5")
 _ap.add_argument("--ns", default="32,64,128,256,512")
 _ap.add_argument("--precision_bits", type=int, default=16)
+_ap.add_argument("--nr_iters", type=int, default=0, help="Newton reciprocal iterations (0: CrypTen default, 10)")
 _ap.add_argument("--tol", type=float, default=0.01)
 _ap.add_argument("--reps", type=int, default=64)
 _ap.add_argument("--grid", default="-11,6.5,0.25", help="ln s from,to,step for the window sweep")
@@ -107,7 +108,10 @@ def main():
     crypten.init()
     rank = crypten.comm.get().get_rank()
     out = []
-    with cfg.temp_override({"encoder.precision_bits": ARGS.precision_bits}):
+    ov = {"encoder.precision_bits": ARGS.precision_bits}
+    if ARGS.nr_iters:
+        ov["functions.reciprocal_nr_iters"] = ARGS.nr_iters
+    with cfg.temp_override(ov):
         lo, hi, wrows = window(crypten, cfg, rank)
         gen = torch.Generator().manual_seed(0)
         kinds = ["all_bottom", "all_top", "one_top", "causal_first", "uniform", "trained_like"]

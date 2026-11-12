@@ -20,7 +20,7 @@ module load impi intel hdf5 mkl python/3.12.1-gcc
 export PYTHONPATH="$HOME/.local/lib/python3.12/site-packages:${PYTHONPATH:-}"
 export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -iv cuda | paste -sd:)
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1
-export HF_HUB_CACHE=${HF_CACHE_DIR:-$HOME/huggingface}
+export HF_HUB_CACHE=/gpfs/scratch/bsc28/$USER/huggingface
 
 python3 bert_qknorm_glue.py --model bert-base-uncased --task qnli --data glue/qnli \
     --variant qknorm --g_max 3.0 --g_lr 1e-3 --epochs 3 --seed 1 --out results/bert_qnli_qknorm_g30_s1_ckpt.csv --save ckpt/bert_qknorm_qnli_g30_s1

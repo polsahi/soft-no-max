@@ -23,7 +23,7 @@ module load impi intel hdf5 mkl python/3.12.1-gcc
 export PYTHONPATH="$HOME/.local/lib/python3.12/site-packages:${PYTHONPATH:-}"
 export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -iv cuda | paste -sd:)
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1
-export HF_HUB_CACHE=${HF_CACHE_DIR:-$HOME/huggingface}
+export HF_HUB_CACHE=/gpfs/scratch/bsc28/$USER/huggingface
 
 OUT=results/bert_qknorm_g_sweep.csv
 for G in 4.0 8.0 12.0; do

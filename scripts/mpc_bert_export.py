@@ -32,6 +32,7 @@ def main():
     ap.add_argument("--n", type=int, default=200)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max_len", type=int, default=128)
+    ap.add_argument("--min_tokens", type=int, default=0, help="keep only validation examples with at least this many tokens (long-input run)")
     ap.add_argument("--task", default="sst2", choices=["sst2", "qnli"], help="text fields: sst2 = sentence; qnli = question, sentence")
     ap.add_argument("--calib", type=int, default=128, help="train sentences used to calibrate public inverse-sqrt scales")
     ap.add_argument("--margin", type=float, default=3.0)
@@ -53,7 +54,12 @@ def main():
     tok = AutoTokenizer.from_pretrained(a.model)
     ds = load_from_disk(a.data)["validation"]
     gen = torch.Generator().manual_seed(a.seed)
-    idx = torch.randperm(len(ds), generator=gen)[: a.n].tolist()
+    perm = torch.randperm(len(ds), generator=gen).tolist()
+    if a.min_tokens:
+        keep = [i for i in perm if len(tok(*text(ds[i]), truncation=True, max_length=a.max_len)["input_ids"]) >= a.min_tokens]
+        print(f"[export] {len(keep)} of {len(perm)} validation examples have >= {a.min_tokens} tokens")
+        perm = keep
+    idx = perm[: a.n]
 
     # Public scales for CrypTen's Newton inverse square root, which diverges for inputs above ~75: calibrated per
     # layer on TRAIN sentences (never the evaluation ones). QK-norm: sum of squares of a head's q or k vector;
