@@ -34,3 +34,9 @@ The fine-tuned checkpoints (about 4 GB) are not in this repository and are avail
   `vanilla:crypten_max,vanilla:shaft_ode,qknorm:snm_shifted`.
 - The reciprocal change used for the fairness control (`functions.softmax_shift_rescale` in CrypTen's `reciprocal` softmax
   branch) is described in the paper; the default value 1.0 leaves CrypTen unchanged.
+
+## License
+
+- Code and job scripts (`scripts/`, `slurm/`): Apache License 2.0, see `LICENSE`.
+- Paper, figures and result files (`paper/`, `results/`): CC BY 4.0, see `LICENSE-paper`.
+- The repository does not include CrypTen or SHAFT, which have their own licenses.
