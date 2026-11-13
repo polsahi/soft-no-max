@@ -6,6 +6,8 @@
 \usepackage{graphicx,booktabs,multirow}
 \usepackage[hidelinks]{hyperref}
 \usepackage{microtype}
+\usepackage[font=small,skip=6pt]{caption}
+
 \graphicspath{{./fig/}}
 
 \newtheorem{proposition}{Proposition}
@@ -216,7 +218,7 @@ Table~\ref{tab:bert} gives BERT-base (12 layers, hidden 768) encoder cost. Softm
 38--55\% of the bytes to a few percent (Figure~\ref{fig:bytes}); GELU becomes the largest cost.
 QK-norm costs 300 extra rounds (total 1704 vs SHAFT's 1440, $+18\%$) but only 0.1--0.2\,GB.
 
-\begin{table}[t]\centering\small
+\begin{table}[tbp]\centering\small
 \caption{BERT-base encoder, 16-bit, 2 parties, random weights (N = tokens). Wall time is the mean of three runs, measured on two
 machines; LAN/WAN are modelled.}\label{tab:bert}
 \begin{tabular}{@{}rlrrrrr@{}}\toprule
@@ -241,7 +243,7 @@ unmodified, without the public rescale given to ours, so the CrypTen cells at $N
 \end{minipage}
 \end{table}
 
-\begin{figure}[t]\centering
+\begin{figure}[tbp]\centering
 \includegraphics[width=.9\linewidth]{mpc_bytes.png}
 \caption{Communication by component, BERT-base, two-node run. Softmax dominates the baselines and
 is small in ours; QK-norm adds a small slice.}\label{fig:bytes}
@@ -288,7 +290,7 @@ and $0.7$--$2.3\%$ faster (it lacks the 300 QK-norm rounds), but it carries no b
 secure maximum, which prior systems already do; what the architecture adds is the guarantee on the shift, at the price of
 $0.7$--$2.3\%$ of the time and of the accuracy losses of Section~\ref{sec:accuracy}.
 
-\begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{table}[tbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{Fairness controls, BERT-base encoder, single node, random weights, one run, 16-bit. Wall = measured seconds on one node
 (loopback), so values differ slightly from Table~\ref{tab:bert}. The two starred rows are cost only.}\label{tab:fair}
 \begin{tabular}{@{}lrrrrrr@{}}\toprule
@@ -341,7 +343,7 @@ domains), outcomes are \emph{garbage} on 3/8 held-out Wikitext windows and 6/8 H
 failure rate rises with how far the data exceed the constant (Figure~\ref{fig:excess}): 27\%
 (excess $<3$ nats), 46\% (3--6), 88\% ($\ge6$). Outputs stay finite, so a non-finite guard would not fire.
 
-\begin{table}[t]\centering\small
+\begin{table}[tbp]\centering\small
 \caption{Secure SmolLM2-135M, 16-bit, 9 windows (v2). Collapsed = non-finite, top-1 $<0.5$ or perplexity $\times2$.}\label{tab:llm}
 \begin{tabular}{@{}lccc@{}}\toprule
 Softmax & Collapsed W/code/Catalan & Mean top-1 (W/code/ca) & LAN / WAN (s)\\\midrule
@@ -352,7 +354,7 @@ Constant per head$\times$position & 3/3, 3/3, 2/3 & .04 / .27 / .53 & 38.0 / 212
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]\centering
+\begin{figure}[tbp]\centering
 \includegraphics[width=.5\linewidth]{mpc_excess.png}
 \caption{Fraction of windows with garbage output vs per-row excess over the calibrated constant
 (floor $e^{-6}$, 32 windows). Few windows per bin (8--13); read the trend, not individual rates.}\label{fig:excess}
@@ -387,7 +389,7 @@ SST-2 is the mildest task. The gains sit at the cap on every task, so the bound 
 attention sharpness: the largest weight a single key can receive among $N$ is $e^{2g}/(e^{2g}+N-1)$, i.e.\ 0.76 at
 $g=3$, $N=128$ (0.998 at $g=5.5$), which hurts tasks needing token-level attention (CoLA, RTE, MRPC); the cap sweep below supports this.
 
-\begin{table}[t]\centering\small
+\begin{table}[tbp]\centering\small
 \caption{GLUE dev, BERT-base converted from the vanilla checkpoint (mean $\pm$ sd over seeds: 5 for RTE, MRPC and CoLA; 3 for QNLI, MNLI and SST-2).
 Metric: accuracy; MRPC F1; CoLA Matthews.}\label{tab:glue}
 \begin{tabular}{@{}lrrr@{}}\toprule
@@ -401,7 +403,7 @@ CoLA (MCC) & 57.28$\pm$1.43 & 54.42$\pm$1.02 & 42.53$\pm$3.22\\\bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]\centering
+\begin{figure}[tbp]\centering
 \includegraphics[width=.62\linewidth]{mpc_glue.png}
 \caption{Accuracy drop of QK-norm-converted BERT-base against vanilla.}\label{fig:glue}
 \end{figure}
@@ -422,7 +424,7 @@ one to two points. Taken together: for a pre-trained BERT converted to scalar-ga
 recipe is not; a model trained with a $g\le3$ cap from the start (a small ViT) loses little, so the cap hurts most when a pre-trained model's
 sharp attention is forced under it. This is thin evidence (one small ViT, two language tasks, no language model pre-trained with the bound).
 
-\begin{table}[t]\centering\small
+\begin{table}[tbp]\centering\small
 \caption{BERT-base accuracy (dev, \%) against the gain cap, same recipe (3 epochs, lr $2\!\times\!10^{-5}$). Mean $\pm$ sd over 3 seeds
 unless marked; $^\dagger$ one seed; -- not run. $g\le3$ is fixed-point safe for any row length in CrypTen's 16-bit reciprocal; $g\le4$ and $g\le4.5$ are safe when every row has at least 4 and 10 keys (Eq.~\eqref{eq:cond}); $g\ge5.5$ is not safe in that setting.}\label{tab:gsweep}
 \begin{tabular}{@{}lcc@{}}\toprule
@@ -436,7 +438,7 @@ Vanilla & 92.89$\pm$0.30 & 91.48$\pm$0.20\\\bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[t]\centering\small
+\begin{table}[tbp]\centering\small
 \caption{BERT-base SST-2 with $g\le3$: recipe variants (dev accuracy \%, 3 seeds). KD = distillation from the vanilla fine-tuned
 model.}\label{tab:var}
 \begin{tabular}{@{}lccc@{}}\toprule
@@ -467,12 +469,12 @@ randomness of the shares, about 1 in 400 sentence runs for this model on SST-2 (
 ($15.5$\,s against $16.5$\,s for the secure max and $15.7$\,s for the ODE per sentence) and uses more rounds than the ODE,
 consistent with the absence of a gain at 32 tokens in Table~\ref{tab:bert}.
 
-\begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{table}[tbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{Secure two-party inference of fine-tuned BERT-base on 200 SST-2 validation sentences (mean 25.9 tokens), 16-bit, one
 seed; same public scales for every row. Plain/Secure = accuracy (\%); err = max$|$secure $-$ plaintext logit$|$ per sentence; Err$>$1 = sentences with err $>1$ (a catastrophic event, err $>10$, is one of these).
 Costs are means per sentence.}\label{tab:sec}
 \begin{tabular}{@{}lrrrrrrr@{}}\toprule
-Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Rounds / GB & s\\\midrule
+Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Rounds / GB & Time (s)\\\midrule
 QK-norm $g\le3$, shifted (ours) & 91.0 & 91.0 & 200/200 & 0.023 & 1 & 1790 / 2.40 & 15.5\\
 Vanilla, CrypTen max & 92.5 & 92.0 & 199/200 & 0.033 & 1 & 2211 / 2.53 & 16.5\\
 Vanilla, SHAFT ODE & 92.5 & 92.0 & 199/200 & 0.036 & 0 & 1490 / 2.57 & 15.7\\\bottomrule
@@ -497,11 +499,11 @@ accuracy 88.5\% (plaintext 88.0\%) on the same 200 pairs, agreement 199/200, med
 catastrophic failure therefore occurred for one of the two QNLI models (1 sentence in 400 for the shifted softmax on QNLI); the two seeds differ in
 their weights, so these are not two draws of the same experiment. The speed gain at 51 tokens is much smaller than the 13--24\% measured at 128--256 tokens with random weights, as the cost model predicts.
 
-\begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{table}[tbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \caption{Secure two-party inference of fine-tuned BERT-base on 200 QNLI validation pairs (mean 51.3 tokens), 16-bit, seed-0 converted
 model; same public scales for every row. Err $>1$ / $>10$ = sentences whose maximum logit error exceeds 1 / 10. Costs are means per sentence.}\label{tab:qnli}
 \begin{tabular}{@{}lrrrrrrrr@{}}\toprule
-Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Err$>$10 & Rounds / GB & s\\\midrule
+Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Err$>$10 & Rounds / GB & Time (s)\\\midrule
 QK-norm $g\le3$, shifted (ours) & 86.5 & 87.0 & 199/200 & 0.074 & 1 & 1 & 1790 / 3.45 & 23.9\\
 Vanilla, CrypTen max & 91.0 & 91.0 & 198/200 & 0.395 & 8 & 0 & 2305 / 3.95 & 25.9\\
 Vanilla, SHAFT ODE & 91.0 & 91.0 & 196/200 & 0.448 & 19 & 1 & 1490 / 4.14 & 25.5\\\bottomrule
@@ -510,10 +512,10 @@ Vanilla, SHAFT ODE & 91.0 & 91.0 & 196/200 & 0.448 & 19 & 1 & 1490 / 4.14 & 25.5
 
 \paragraph{Long inputs.} The speed and accuracy results above are at about 51 tokens, where the gain is 5--7\%. To put speed and accuracy at one operating point at a length where the gain is larger, we evaluated the 48 QNLI dev pairs with at least 90 tokens (mean 106) with the same three models (Table~\ref{tab:long}; one run per pair). The shifted softmax is 9.5\% faster than the secure max and 11.1\% faster than the ODE, and faster on all 48 pairs. The cost of the cap is also larger on these inputs: 79.2\% plaintext accuracy against 91.7\% for vanilla (secure 81.2\%, a 2-pair difference). Each protocol has exactly one pair with a catastrophic error (above 10, of order $10^{9}$), and the numbers of pairs with error above 1 are 1, 4 and 5 for ours, the secure max and the ODE; the counts are too small to rank the protocols. Exact 95\% binomial intervals are wide: 79.2\% is $[65.0,89.5]$ and 91.7\% is $[80.0,97.7]$ on 48 pairs, and the secure accuracy of ours (81.2\%) is $[67.4,91.1]$, so the accuracy gap is about 10.5 points secure and 12.5 points plaintext with overlapping intervals at the ends.
 
-\begin{table}[t]\centering\small\setlength{\tabcolsep}{3pt}
+\begin{table}[tbp]\centering\small\setlength{\tabcolsep}{3pt}
 \caption{Long QNLI pairs ($\ge90$ tokens, $n=48$, mean 106 tokens), 2-party CrypTen on two MN5 nodes. Columns as in Table~\ref{tab:qnli}.}\label{tab:long}
 \begin{tabular}{@{}lrrrrrrrr@{}}\toprule
-Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Err$>$10 & Rounds / GB & s\\\midrule
+Model, softmax & Plain & Secure & Agree & Med.\ err & Err$>$1 & Err$>$10 & Rounds / GB & Time (s)\\\midrule
 QK-norm $g\le3$, shifted (ours) & 79.2 & 81.2 & 45/48 & 0.174 & 1 & 1 & 1790 / 5.79 & 42.4\\
 Vanilla, CrypTen max & 91.7 & 91.7 & 46/48 & 0.463 & 4 & 1 & 2390 / 7.79 & 46.9\\
 Vanilla, SHAFT ODE & 91.7 & 91.7 & 46/48 & 0.499 & 5 & 1 & 1490 / 8.56 & 47.8\\\bottomrule
@@ -522,11 +524,11 @@ Vanilla, SHAFT ODE & 91.7 & 91.7 & 46/48 & 0.499 & 5 & 1 & 1490 / 8.56 & 47.8\\\
 
 \paragraph{An encoder-correct cap: $g\le4$ and $g\le4.5$.} Eq.~\eqref{eq:cond} predicts that a full-visibility encoder can use a larger cap than the causal worst case. We fine-tuned QK-norm BERT-base at $g_{\max}=4.0$ and $4.5$ (seed 0, same recipe) and ran them securely with the shifted softmax and the same public scales (Table~\ref{tab:cap}). Full-dev accuracy rises from $87.0$ at $g\le3$ to $88.4$ ($g\le4$) and $89.4$ ($g\le4.5$) on QNLI, against $91.3$ for vanilla; on SST-2 the $g\le4$ and $g\le4.5$ models reach $90.9$ and $91.1$ (seed 0). In secure inference, none of the $200$ SST-2 sentences ($g\le4$, shortest input 4 tokens, which is within the condition, $(6.75+\ln4)/2=4.07\ge4$), $100$ QNLI pairs ($g\le4$ and $4.5$, shortest 20 tokens) or $48$ long pairs ($g\le4.5$) had a logit error above $1$, with median errors of $0.025$ to $0.17$ and time per sample equal to the $g\le3$ model. This is consistent with the condition, but it does not probe its boundary (the QNLI inputs have at least 20 tokens against a 10-key limit, and $g\le4.5$ was not run on SST-2), and it is not proof: zero events in $448$ runs (two models) bounds the error rate only to below $0.7\%$ (exact 95\% bound), and the $g\le3$ models had 3 events in 648 first-pass runs (SST-2 1/200; QNLI 1/200 and 0/200 for the two seeds; long 1/48), a difference we cannot call significant. The accuracy cost on long inputs remains about $10$ points ($83.3$ secure and $81.2$ plain against $91.7$). Comparisons use the same pairs for every row; the first $100$ QNLI pairs are a harder subset than the 200 (vanilla $86.0$ plain on them against $91.0$ on all 200).
 
-\begin{table}[t]\centering\footnotesize\setlength{\tabcolsep}{3pt}
-\caption{Cap against secure behaviour, QK-norm BERT-base, shifted softmax, 2-party CrypTen (16-bit), seed 0. Plain/Sec = accuracy (\%); E1 = pairs with logit error $>1$; s = seconds per sample. QNLI-100 = the first 100 of the 200 QNLI pairs (same pairs for every row); long = 48 pairs of at least 90 tokens. The vanilla row is CrypTen's secure max. -- = not run ($g\le4.5$ on SST-2, $g\le4$ on long inputs). All rows are one seed; secure accuracy above plain accuracy is noise on 48--200 samples. QNLI-100 is the first 100 of the 200 seeded pairs in file order, not a stratified subset.}\label{tab:cap}
+\begin{table}[tbp]\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\caption{Cap against secure behaviour, QK-norm BERT-base, shifted softmax, 2-party CrypTen (16-bit), seed 0. Plain/Sec = accuracy (\%); E1 = pairs with logit error $>1$; Time = seconds per sample. QNLI-100 = the first 100 of the 200 QNLI pairs (same pairs for every row); long = 48 pairs of at least 90 tokens. The vanilla row is CrypTen's secure max. -- = not run ($g\le4.5$ on SST-2, $g\le4$ on long inputs). All rows are one seed; secure accuracy above plain accuracy is noise on 48--200 samples. QNLI-100 is the first 100 of the 200 seeded pairs in file order, not a stratified subset.}\label{tab:cap}
 \begin{tabular}{@{}lcccccccccc@{}}\toprule
  & Dev acc & \multicolumn{3}{c}{SST-2 (200)} & \multicolumn{3}{c}{QNLI-100} & \multicolumn{3}{c}{long (48)}\\
-Model & QNLI & Plain/Sec & E1 & s & Plain/Sec & E1 & s & Plain/Sec & E1 & s\\\midrule
+Model & QNLI & Plain/Sec & E1 & Time & Plain/Sec & E1 & Time & Plain/Sec & E1 & Time\\\midrule
 Vanilla, max & 91.3 & 92.5/92.0 & 1 & 16.5 & 86.0/87.0 & 4 & 26.6 & 91.7/91.7 & 4 & 46.9\\
 $g\le3$ & 87.0 & 91.0/91.0 & 1 & 15.5 & 86.0/86.0 & 1 & 24.5 & 79.2/81.2 & 1 & 42.4\\
 $g\le4$ & 88.4 & 92.5/93.0 & 0 & 15.5 & 86.0/86.0 & 0 & 24.6 & -- & -- & --\\
